@@ -2,20 +2,21 @@
 #include "ArduinoJson.h"
 #include <NTPClient.h>
 #include <WiFiUdp.h>
+#include <pwmWrite.h>
 
 // Replace 0 by ID of this current device
-const int DEVICE_ID = 0;
+const int DEVICE_ID = 19;
 
 int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP
-String serverName = "http://192.168.1.88/";
+String serverName = "http://192.168.24.104/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "GalaxyHotspot"
-#define STAPSK "d7?a35D9EnaPepXY?c!4"
+#define STASSID "Galaxy S21" //"GalaxyHotspot"
+#define STAPSK "msiy3339"    //"d7?a35D9EnaPepXY?c!4"
 
 // NTP (Net time protocol) settings
 WiFiUDP ntpUDP;
@@ -25,7 +26,10 @@ NTPClient timeClient(ntpUDP);
 const int analogSensorPin = 34;
 const int digitalSensorPin = 13;
 const int actuatorPin = 15;
-const int analogActuatorPin = 2;
+const int analogActuatorPin = 16;
+
+// Property initialization for servo movement using PWM signal
+Pwm pwm = Pwm();
 
 // Setup
 void setup()
@@ -35,7 +39,7 @@ void setup()
   Serial.print("Connecting to ");
   Serial.println(STASSID);
 
-  /* Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
+  /* Explicitly set the ESP32 to be a WiFi-client, otherwise, it by default,
      would try to act as both a client and an access-point and could cause
      network-issues with your other WiFi-devices on your WiFi-network. */
   WiFi.mode(WIFI_STA);
@@ -57,9 +61,9 @@ void setup()
   // For ESP32 WROOM 32D https://uelectronics.com/producto/esp32-38-pines-esp-wroom-32/
   // You must find de pinout for your specific board version
   pinMode(actuatorPin, OUTPUT);
-  pinMode(analogActuatorPin, OUTPUT);
   pinMode(analogSensorPin, INPUT);
   pinMode(digitalSensorPin, INPUT);
+  pinMode(analogActuatorPin, OUTPUT);
 
   // Init and get the time
   timeClient.begin();
@@ -222,6 +226,7 @@ void GET_tests()
   String serverPath = serverName + "api/devices/" + String(DEVICE_ID);
   http.begin(serverPath.c_str());
   test_response(http.GET());
+  deserializeDeviceBody(http.getString());
 
   describe("Test GET sensors from deviceID");
   serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors";
@@ -259,32 +264,20 @@ void POST_tests()
   test_response(http.POST(actuator_states_body));
 }
 
-void PUT_tests()
-{
-  int temp = 38;
-  long timestamp = 151241254122;
-  // POST TESTS
-  String post_body = "{ 'idsensor' : 18, 'value': " + temp;
-  post_body = post_body + " , 'timestamp' :";
-  post_body = post_body + timestamp;
-  post_body = post_body + ", 'user' : 'Luismi'}";
-
-  describe("Test PUT with path and body");
-  String serverPath = serverName + "api/actuator_states/18";
-  http.begin(serverPath.c_str());
-  test_response(http.PUT(post_body));
-}
-
 // Run the tests!
 void loop()
 {
   GET_tests();
-  POST_tests();
+  // POST_tests();
   delay(1000);
+
+  // Update current time using NTP protocol
   timeClient.update();
 
+  // Print current time in serial monitor 
   Serial.println(timeClient.getFormattedTime());
 
+  // Depending on the current second (even or odd), write in digital actuator pin HIGH or LOW value
   if (timeClient.getSeconds() % 2 == 1)
   {
     digitalWrite(actuatorPin, HIGH);
@@ -296,12 +289,15 @@ void loop()
     Serial.println("OFF");
   }
 
+  // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
+  pwm.writeServo(analogActuatorPin, 180, 140.0, 0.6);
 
-  //ledcWrite(analogActuatorPin, 30);
-
+  // Reads analog sensor value and print it by serial monitor
   int analogValue = analogRead(analogSensorPin);
-  int digitalValue = digitalRead(digitalSensorPin);
   Serial.println("Analog sensor value :" + String(analogValue));
+
+  // Reads digital sensor value and print ON or OFF by serial monitor depending on the sensor status (binary)
+  int digitalValue = digitalRead(digitalSensorPin);
   if (digitalValue == HIGH)
   {
     Serial.println("Digital sensor value : ON");
