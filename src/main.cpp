@@ -10,11 +10,11 @@ int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP
-String serverName = "http://192.168.1.106/";
+String serverName = "http://192.168.1.88/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "SiempreHomeDomo"
+#define STASSID "GalaxyHotspot"
 #define STAPSK "d7?a35D9EnaPepXY?c!4"
 
 // NTP (Net time protocol) settings
@@ -278,8 +278,8 @@ void PUT_tests()
 // Run the tests!
 void loop()
 {
-  // GET_tests();
-  // POST_tests();
+  GET_tests();
+  POST_tests();
   delay(1000);
   timeClient.update();
 
@@ -296,7 +296,8 @@ void loop()
     Serial.println("OFF");
   }
 
-  analogWrite(analogActuatorPin, timeClient.getSeconds());
+
+  ledcWrite(analogActuatorPin, timeClient.getSeconds());
 
   int analogValue = analogRead(analogSensorPin);
   int digitalValue = digitalRead(digitalSensorPin);
