@@ -3,7 +3,7 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <ErriezHCSR04.h>
-#include <Servo.h>
+#include <pwmWrite.h>
 
 // Replace 0 by ID of this current device
 const int DEVICE_ID = 0;
