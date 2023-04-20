@@ -167,10 +167,14 @@ void deserializeActuatorStatusBody(String responseJson)
   }
 }
 
-void deserializeDeviceBody(String responseJson)
+void deserializeDeviceBody(int httpResponseCode)
 {
-  if (responseJson != "")
+
+  if (httpResponseCode > 0)
   {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    String responseJson = http.getString();
     DynamicJsonDocument doc(2048);
 
     DeserializationError error = deserializeJson(doc, responseJson);
@@ -194,6 +198,11 @@ void deserializeDeviceBody(String responseJson)
     Serial.println(name);
     Serial.println(mqttChannel);
     Serial.println(idGroup);
+  }
+  else
+  {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
   }
 }
 
@@ -225,8 +234,8 @@ void GET_tests()
   describe("Test GET full device info");
   String serverPath = serverName + "api/devices/" + String(DEVICE_ID);
   http.begin(serverPath.c_str());
-  test_response(http.GET());
-  deserializeDeviceBody(http.getString());
+  // test_response(http.GET());
+  deserializeDeviceBody(http.GET());
 
   describe("Test GET sensors from deviceID");
   serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors";
@@ -274,7 +283,7 @@ void loop()
   // Update current time using NTP protocol
   timeClient.update();
 
-  // Print current time in serial monitor 
+  // Print current time in serial monitor
   Serial.println(timeClient.getFormattedTime());
 
   // Depending on the current second (even or odd), write in digital actuator pin HIGH or LOW value
