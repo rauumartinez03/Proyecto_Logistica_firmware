@@ -1,21 +1,33 @@
-#include "RestClient.h"
+#include <HTTPClient.h>
 #include "ArduinoJson.h"
-#include <ESP8266WiFi.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 // Replace 0 by ID of this current device
 const int DEVICE_ID = 0;
 
-int test_delay = 1000; //so we don't spam the API
+int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP
-RestClient client = RestClient("0.0.0.0", 80);
+String serverName = "http://192.168.1.106/";
+HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "WifiName"
-#define STAPSK  "WifiPassword"
+#define STASSID "SiempreHomeDomo"
+#define STAPSK "d7?a35D9EnaPepXY?c!4"
 
-//Setup
+// NTP (Net time protocol) settings
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
+// Pinout settings
+const int analogSensorPin = 34;
+const int digitalSensorPin = 13;
+const int actuatorPin = 15;
+const int analogActuatorPin = 2;
+
+// Setup
 void setup()
 {
   Serial.begin(9600);
@@ -29,7 +41,8 @@ void setup()
   WiFi.mode(WIFI_STA);
   WiFi.begin(STASSID, STAPSK);
 
-  while (WiFi.status() != WL_CONNECTED) {
+  while (WiFi.status() != WL_CONNECTED)
+  {
     delay(500);
     Serial.print(".");
   }
@@ -39,6 +52,17 @@ void setup()
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
   Serial.println("Setup!");
+
+  // Configure pin modes for actuators (output mode) and sensors (input mode). Pin numbers should be described by GPIO number (https://www.upesy.com/blogs/tutorials/esp32-pinout-reference-gpio-pins-ultimate-guide)
+  // For ESP32 WROOM 32D https://uelectronics.com/producto/esp32-38-pines-esp-wroom-32/
+  // You must find de pinout for your specific board version
+  pinMode(actuatorPin, OUTPUT);
+  pinMode(analogActuatorPin, OUTPUT);
+  pinMode(analogSensorPin, INPUT);
+  pinMode(digitalSensorPin, INPUT);
+
+  // Init and get the time
+  timeClient.begin();
 }
 
 String response;
@@ -70,7 +94,6 @@ String serializeSensorValueBody(int idSensor, long timestamp, float value)
   return output;
 }
 
-
 String serializeActuatorStatusBody(float status, bool statusBinary, int idActuator, long timestamp, bool removed)
 {
   DynamicJsonDocument doc(2048);
@@ -100,7 +123,8 @@ String serializeDeviceBody(String deviceSerialId, String name, String mqttChanne
   return output;
 }
 
-void deserializeActuatorStatusBody(String responseJson){
+void deserializeActuatorStatusBody(String responseJson)
+{
   if (responseJson != "")
   {
     DynamicJsonDocument doc(2048);
@@ -126,8 +150,8 @@ void deserializeActuatorStatusBody(String responseJson){
     int idActuator = doc["idActuator"];
     long timestamp = doc["timestamp"];
     bool removed = doc["removed"];
-    //const char *sensor = doc["sensor"];
-    
+    // const char *sensor = doc["sensor"];
+
     // Print values.
     Serial.println("Actuator status deserialized:");
     Serial.println(idActuatorState);
@@ -136,7 +160,6 @@ void deserializeActuatorStatusBody(String responseJson){
     Serial.println(idActuator);
     Serial.println(timestamp);
     Serial.println(removed);
-    
   }
 }
 
@@ -167,44 +190,73 @@ void deserializeDeviceBody(String responseJson)
     Serial.println(name);
     Serial.println(mqttChannel);
     Serial.println(idGroup);
-    
   }
+}
+
+void test_response(int httpResponseCode)
+{
+  delay(test_delay);
+  if (httpResponseCode > 0)
+  {
+    Serial.print("HTTP Response code: ");
+    Serial.println(httpResponseCode);
+    String payload = http.getString();
+    Serial.println(payload);
+  }
+  else
+  {
+    Serial.print("Error code: ");
+    Serial.println(httpResponseCode);
+  }
+}
+
+void describe(char *description)
+{
+  if (describe_tests)
+    Serial.println(description);
 }
 
 void GET_tests()
 {
   describe("Test GET full device info");
-  test_status(client.get(("/api/devices/" + String(DEVICE_ID)).c_str(), &response));
-  test_response();
+  String serverPath = serverName + "api/devices/" + String(DEVICE_ID);
+  http.begin(serverPath.c_str());
+  test_response(http.GET());
 
   describe("Test GET sensors from deviceID");
-  test_status(client.get(("/api/devices/" + String(DEVICE_ID) + "/sensors").c_str(), &response));
-  test_response();
+  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors";
+  http.begin(serverPath.c_str());
+  test_response(http.GET());
 
   describe("Test GET actuators from deviceID");
-  test_status(client.get(("/api/devices/" + String(DEVICE_ID) + "/actuators").c_str(), &response));
-  test_response();
+  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/actuators";
+  http.begin(serverPath.c_str());
+  test_response(http.GET());
 
   describe("Test GET sensors from deviceID and Type");
-  test_status(client.get(("/api/devices/" + String(DEVICE_ID) + "/sensors/TEMPERATURE").c_str(), &response));
-  test_response();
+  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors/TEMPERATURE";
+  http.begin(serverPath.c_str());
+  test_response(http.GET());
 
   describe("Test GET actuators from deviceID");
-  test_status(client.get(("/api/devices/" + String(DEVICE_ID) + "/actuators/RELAY").c_str(), &response));
-  test_response();
+  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/actuators/RELAY";
+  http.begin(serverPath.c_str());
+  test_response(http.GET());
 }
 
 void POST_tests()
 {
-  String actuator_states_body = serializeSensorValueBody(18, millis(), random(2000, 4000)/100);
+  String actuator_states_body = serializeSensorValueBody(18, millis(), random(2000, 4000) / 100);
   describe("Test POST with path and body and response");
-  test_status(client.post("/api/actuator_states/", actuator_states_body.c_str(), &response));
-  test_response();
+  String serverPath = serverName + "api/actuator_states";
+  http.begin(serverPath.c_str());
+  test_response(http.POST(actuator_states_body));
 
   String device_body = serializeDeviceBody(String(DEVICE_ID), ("Name_" + String(DEVICE_ID)).c_str(), ("mqtt_" + String(DEVICE_ID)).c_str(), 12);
   describe("Test POST with path and body and response");
-  test_status(client.post("/api/device", device_body.c_str(), &response));
-  test_response();
+  serverPath = serverName + "api/device";
+  http.begin(serverPath.c_str());
+  test_response(http.POST(actuator_states_body));
 }
 
 void PUT_tests()
@@ -218,64 +270,43 @@ void PUT_tests()
   post_body = post_body + ", 'user' : 'Luismi'}";
 
   describe("Test PUT with path and body");
-  test_status(client.put("/data/445654", post_body.c_str()));
-
-  describe("Test PUT with path and body and response");
-  test_status(client.put("/data/1241231", post_body.c_str(), &response));
-  test_response();
-}
-
-void DELETE_tests()
-{
-  int temp = 37;
-  long timestamp = 151241254122;
-  // POST TESTS
-  String post_body = "{ 'idsensor' : 18, 'value': " + temp;
-  post_body = post_body + " , 'timestamp' :";
-  post_body = post_body + timestamp;
-  post_body = post_body + ", 'user' : 'Luismi'}";
-
-  describe("Test DELETE with path");
-  //note: requires a special endpoint
-  test_status(client.del("/del/1241231"));
-
-  describe("Test DELETE with path and body");
-  test_status(client.del("/data/1241231", post_body.c_str()));
+  String serverPath = serverName + "api/actuator_states/18";
+  http.begin(serverPath.c_str());
+  test_response(http.PUT(post_body));
 }
 
 // Run the tests!
 void loop()
 {
-  GET_tests();
-  POST_tests();
-}
+  // GET_tests();
+  // POST_tests();
+  delay(1000);
+  timeClient.update();
 
-void test_status(int statusCode)
-{
-  delay(test_delay);
-  if (statusCode == 200 || statusCode == 201)
+  Serial.println(timeClient.getFormattedTime());
+
+  if (timeClient.getSeconds() % 2 == 1)
   {
-    Serial.print("TEST RESULT: ok (");
-    Serial.print(statusCode);
-    Serial.println(")");
+    digitalWrite(actuatorPin, HIGH);
+    Serial.println("ON");
   }
   else
   {
-    Serial.print("TEST RESULT: fail (");
-    Serial.print(statusCode);
-    Serial.println(")");
+    digitalWrite(actuatorPin, LOW);
+    Serial.println("OFF");
   }
-}
 
+  analogWrite(analogActuatorPin, timeClient.getSeconds());
 
-void test_response()
-{
-  Serial.println("TEST RESULT: (response body = " + response + ")");
-  response = "";
-}
-
-void describe(char *description)
-{
-  if (describe_tests)
-    Serial.println(description);
+  int analogValue = analogRead(analogSensorPin);
+  int digitalValue = digitalRead(digitalSensorPin);
+  Serial.println("Analog sensor value :" + String(analogValue));
+  if (digitalValue == HIGH)
+  {
+    Serial.println("Digital sensor value : ON");
+  }
+  else
+  {
+    Serial.println("Digital sensor value : OFF");
+  }
 }
