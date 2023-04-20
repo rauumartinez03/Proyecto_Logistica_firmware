@@ -297,7 +297,7 @@ void loop()
   }
 
 
-  ledcWrite(analogActuatorPin, timeClient.getSeconds());
+  //ledcWrite(analogActuatorPin, 30);
 
   int analogValue = analogRead(analogSensorPin);
   int digitalValue = digitalRead(digitalSensorPin);
