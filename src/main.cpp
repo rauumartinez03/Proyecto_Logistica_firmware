@@ -5,18 +5,18 @@
 #include <pwmWrite.h>
 
 // Replace 0 by ID of this current device
-const int DEVICE_ID = 19;
+const int DEVICE_ID = 124;
 
 int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
-// Replace 0.0.0.0 by your server local IP
-String serverName = "http://192.168.24.104/";
+// Replace 0.0.0.0 by your server local IP (ipconfig [windows] or ifconfig [Linux o MacOS] gets IP assigned to your PC)
+String serverName = "http://0.0.0.0/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "Galaxy S21" //"GalaxyHotspot"
-#define STAPSK "msiy3339"    //"d7?a35D9EnaPepXY?c!4"
+#define STASSID "Your_Wifi_SSID"//"Your_Wifi_SSID"
+#define STAPSK "d7?Your_Wifi_PASSWORD?c!4"//"Your_Wifi_PASSWORD"
 
 // NTP (Net time protocol) settings
 WiFiUDP ntpUDP;
@@ -73,12 +73,10 @@ String response;
 
 String serializeSensorValueBody(int idSensor, long timestamp, float value)
 {
-  DynamicJsonDocument doc(2048);
-
   // StaticJsonObject allocates memory on the stack, it can be
   // replaced by DynamicJsonDocument which allocates in the heap.
   //
-  // DynamicJsonDocument  doc(200);
+  DynamicJsonDocument doc(2048);
 
   // Add values in the document
   //
@@ -248,12 +246,12 @@ void GET_tests()
   test_response(http.GET());
 
   describe("Test GET sensors from deviceID and Type");
-  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors/TEMPERATURE";
+  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors/Temperature";
   http.begin(serverPath.c_str());
   test_response(http.GET());
 
   describe("Test GET actuators from deviceID");
-  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/actuators/RELAY";
+  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/actuators/Relay";
   http.begin(serverPath.c_str());
   test_response(http.GET());
 }
@@ -278,7 +276,6 @@ void loop()
 {
   GET_tests();
   // POST_tests();
-  delay(1000);
 
   // Update current time using NTP protocol
   timeClient.update();
