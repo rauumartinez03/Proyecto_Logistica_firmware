@@ -16,18 +16,19 @@ String serverName = "http://192.168.1.88/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "GalaxyHotspot"
-#define STAPSK "d7?a35D9EnaPepXY?c!4"
+#define STASSID "MOVISTAR_4EE2"
+#define STAPSK "Elbrus2014"
 
 // NTP (Net time protocol) settings
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
 // Pinout settings
-const int analogSensorPin = 34;
-const int digitalSensorPin = 13;
-const int actuatorPin = 15;
-const int analogActuatorPin = 2;
+const int servoPin = 34;
+const int ultrasoundPinTRIG = 3;
+const int ultrasoundPinECHO = 1;
+
+ErriezHCSR04 ultrasound1(ultrasoundPinTRIG, ultrasoundPinECHO);
 
 // Setup
 void setup()
@@ -58,10 +59,7 @@ void setup()
   // Configure pin modes for actuators (output mode) and sensors (input mode). Pin numbers should be described by GPIO number (https://www.upesy.com/blogs/tutorials/esp32-pinout-reference-gpio-pins-ultimate-guide)
   // For ESP32 WROOM 32D https://uelectronics.com/producto/esp32-38-pines-esp-wroom-32/
   // You must find de pinout for your specific board version
-  pinMode(actuatorPin, OUTPUT);
-  pinMode(analogActuatorPin, OUTPUT);
-  pinMode(analogSensorPin, INPUT);
-  pinMode(digitalSensorPin, INPUT);
+    //pinMode(servoPin, OUTPUT);
 
   // Init and get the time
   timeClient.begin();
@@ -280,14 +278,15 @@ void PUT_tests()
 // Run the tests!
 void loop()
 {
-  GET_tests();
+  /*GET_tests();
   POST_tests();
-  delay(1000);
-  timeClient.update();
+  delay(1000);*/
 
-  Serial.println(timeClient.getFormattedTime());
+  /*timeClient.update();
 
-  if (timeClient.getSeconds() % 2 == 1)
+  Serial.println(timeClient.getFormattedTime());*/
+
+  /*if (timeClient.getSeconds() % 2 == 1)
   {
     digitalWrite(actuatorPin, HIGH);
     Serial.println("ON");
@@ -296,12 +295,12 @@ void loop()
   {
     digitalWrite(actuatorPin, LOW);
     Serial.println("OFF");
-  }
+  }*/
 
 
   //ledcWrite(analogActuatorPin, 30);
 
-  int analogValue = analogRead(analogSensorPin);
+  /*int analogValue = analogRead(analogSensorPin);
   int digitalValue = digitalRead(digitalSensorPin);
   Serial.println("Analog sensor value :" + String(analogValue));
   if (digitalValue == HIGH)
@@ -311,5 +310,18 @@ void loop()
   else
   {
     Serial.println("Digital sensor value : OFF");
-  }
+  }*/
+
+  uint16_t distance;
+
+  // Measure distance
+  distance = ultrasound1.getDistance();
+
+  // Print distance
+  Serial.print("Distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  // Wait
+  delay(2000);
 }
