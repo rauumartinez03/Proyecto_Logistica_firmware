@@ -3,6 +3,7 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 #include <pwmWrite.h>
+#include <PubSubClient.h>
 
 // Replace 0 by ID of this current device
 const int DEVICE_ID = 124;
@@ -15,12 +16,23 @@ String serverName = "http://0.0.0.0/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "Your_Wifi_SSID"     //"Your_Wifi_SSID"
+#define STASSID "Your_Wifi_SSID"    //"Your_Wifi_SSID"
 #define STAPSK "Your_Wifi_PASSWORD" //"Your_Wifi_PASSWORD"
 
 // NTP (Net time protocol) settings
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
+
+// MQTT configuration
+WiFiClient espClient;
+PubSubClient client(espClient);
+
+// Server IP, where de MQTT broker is deployed
+const char *MQTT_BROKER_ADRESS = "192.168.1.154";
+const uint16_t MQTT_PORT = 1883;
+
+// Name for this MQTT client
+const char *MQTT_CLIENT_NAME = "ArduinoClient_1";
 
 // Pinout settings
 const int analogSensorPin = 34;
@@ -30,6 +42,31 @@ const int analogActuatorPin = 16;
 
 // Property initialization for servo movement using PWM signal
 Pwm pwm = Pwm();
+
+// callback a ejecutar cuando se recibe un mensaje
+// en este ejemplo, muestra por serial el mensaje recibido
+void OnMqttReceived(char *topic, byte *payload, unsigned int length)
+{
+  Serial.print("Received on ");
+  Serial.print(topic);
+  Serial.print(": ");
+
+  String content = "";
+  for (size_t i = 0; i < length; i++)
+  {
+    content.concat((char)payload[i]);
+  }
+  Serial.print(content);
+  Serial.println();
+}
+
+// inicia la comunicacion MQTT
+// inicia establece el servidor y el callback al recibir un mensaje
+void InitMqtt()
+{
+  client.setServer(MQTT_BROKER_ADRESS, MQTT_PORT);
+  client.setCallback(OnMqttReceived);
+}
 
 // Setup
 void setup()
@@ -50,6 +87,8 @@ void setup()
     delay(500);
     Serial.print(".");
   }
+
+  InitMqtt();
 
   Serial.println("");
   Serial.println("WiFi connected");
@@ -331,11 +370,45 @@ void POST_tests()
   http.begin(serverPath.c_str());
   test_response(http.POST(sensor_value_body));
 
-  //String device_body = serializeDeviceBody(String(DEVICE_ID), ("Name_" + String(DEVICE_ID)).c_str(), ("mqtt_" + String(DEVICE_ID)).c_str(), 12);
-  //describe("Test POST with path and body and response");
-  //serverPath = serverName + "api/device";
-  //http.begin(serverPath.c_str());
-  //test_response(http.POST(actuator_states_body));
+  // String device_body = serializeDeviceBody(String(DEVICE_ID), ("Name_" + String(DEVICE_ID)).c_str(), ("mqtt_" + String(DEVICE_ID)).c_str(), 12);
+  // describe("Test POST with path and body and response");
+  // serverPath = serverName + "api/device";
+  // http.begin(serverPath.c_str());
+  // test_response(http.POST(actuator_states_body));
+}
+
+// conecta o reconecta al MQTT
+// consigue conectar -> suscribe a topic y publica un mensaje
+// no -> espera 5 segundos
+void ConnectMqtt()
+{
+  Serial.print("Starting MQTT connection...");
+  if (client.connect(MQTT_CLIENT_NAME))
+  {
+    client.subscribe("hello/world");
+    client.publish("hello/world", "connected");
+  }
+  else
+  {
+    Serial.print("Failed MQTT connection, rc=");
+    Serial.print(client.state());
+    Serial.println(" try again in 5 seconds");
+
+    delay(5000);
+  }
+}
+
+// gestiona la comunicación MQTT
+// comprueba que el cliente está conectado
+// no -> intenta reconectar
+// si -> llama al MQTT loop
+void HandleMqtt()
+{
+  if (!client.connected())
+  {
+    ConnectMqtt();
+  }
+  client.loop();
 }
 
 // Run the tests!
@@ -379,4 +452,6 @@ void loop()
   {
     Serial.println("Digital sensor value : OFF");
   }
+
+  HandleMqtt();
 }
