@@ -2,8 +2,9 @@
 #include "ArduinoJson.h"
 #include <NTPClient.h>
 #include <WiFiUdp.h>
-#include <ErriezHCSR04.h>
 #include <pwmWrite.h>
+
+int ping(int TriggerPin, int EchoPin);
 
 // Replace 0 by ID of this current device
 const int DEVICE_ID = 0;
@@ -16,19 +17,18 @@ String serverName = "http://192.168.1.88/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
-#define STASSID "MOVISTAR_4EE2"
-#define STAPSK "Elbrus2014"
+#define STASSID "Xiaomi 11T Pro"
+#define STAPSK "jajajaxd"
 
 // NTP (Net time protocol) settings
 WiFiUDP ntpUDP;
 NTPClient timeClient(ntpUDP);
 
 // Pinout settings
-const int servoPin = 34;
-const int ultrasoundPinTRIG = 3;
-const int ultrasoundPinECHO = 1;
-
-ErriezHCSR04 ultrasound1(ultrasoundPinTRIG, ultrasoundPinECHO);
+const int servoPin = 26;
+const int ultrasoundPinTRIG = 16;
+const int ultrasoundPinECHO = 17;
+Pwm pwm = Pwm();
 
 // Setup
 void setup()
@@ -63,6 +63,10 @@ void setup()
 
   // Init and get the time
   timeClient.begin();
+
+  //Init pins
+  pinMode(ultrasoundPinTRIG, OUTPUT);
+  pinMode(ultrasoundPinECHO, INPUT);
 }
 
 String response;
@@ -286,42 +290,36 @@ void loop()
 
   Serial.println(timeClient.getFormattedTime());*/
 
-  /*if (timeClient.getSeconds() % 2 == 1)
-  {
-    digitalWrite(actuatorPin, HIGH);
-    Serial.println("ON");
+  /*if (timeClient.getSeconds() % 2 == 1)...*/
+
+  int cm = ping(ultrasoundPinTRIG, ultrasoundPinECHO);
+  Serial.print("Distancia: ");
+  Serial.println(cm);
+  delay(1000);
+
+  for (int pos = 0; pos <= 180; pos++) {  // go from 0-180 degrees
+    pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+    delay(15);
   }
-  else
-  {
-    digitalWrite(actuatorPin, LOW);
-    Serial.println("OFF");
-  }*/
 
-
-  //ledcWrite(analogActuatorPin, 30);
-
-  /*int analogValue = analogRead(analogSensorPin);
-  int digitalValue = digitalRead(digitalSensorPin);
-  Serial.println("Analog sensor value :" + String(analogValue));
-  if (digitalValue == HIGH)
-  {
-    Serial.println("Digital sensor value : ON");
+  for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
+    pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+    delay(15);
   }
-  else
-  {
-    Serial.println("Digital sensor value : OFF");
-  }*/
+}
 
-  uint16_t distance;
-
-  // Measure distance
-  distance = ultrasound1.getDistance();
-
-  // Print distance
-  Serial.print("Distance: ");
-  Serial.print(distance);
-  Serial.println(" cm");
-
-  // Wait
-  delay(2000);
+//Cálculo para la distancia
+int ping(int TriggerPin, int EchoPin) {
+  long duration, distanceCm;
+  
+  digitalWrite(TriggerPin, LOW);  //para generar un pulso limpio ponemos a LOW 4us
+  delayMicroseconds(4);
+  digitalWrite(TriggerPin, HIGH);  //generamos Trigger (disparo) de 10us
+  delayMicroseconds(10);
+  digitalWrite(TriggerPin, LOW);
+  
+  duration = pulseIn(EchoPin, HIGH);  //medimos el tiempo entre pulsos, en microsegundos
+  
+  distanceCm = duration * 10 / 292/ 2;   //convertimos a distancia, en cm
+  return distanceCm;
 }
