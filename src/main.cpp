@@ -4,7 +4,6 @@
 #include <WiFiUdp.h>
 #include <pwmWrite.h>
 #include <PubSubClient.h>
-#include <pwmWrite.h>
 
 int ping(int TriggerPin, int EchoPin);
 
@@ -38,10 +37,9 @@ const uint16_t MQTT_PORT = 1883;
 const char *MQTT_CLIENT_NAME = "ArduinoClient_1";
 
 // Pinout settings
-const int analogSensorPin = 34;
-const int digitalSensorPin = 13;
-const int actuatorPin = 15;
-const int analogActuatorPin = 16;
+const int servoPin = 26;
+const int ultrasoundPinTRIG = 16;
+const int ultrasoundPinECHO = 17;
 
 // Property initialization for servo movement using PWM signal
 Pwm pwm = Pwm();
@@ -70,10 +68,6 @@ void InitMqtt()
   client.setServer(MQTT_BROKER_ADRESS, MQTT_PORT);
   client.setCallback(OnMqttReceived);
 }
-const int servoPin = 26;
-const int ultrasoundPinTRIG = 16;
-const int ultrasoundPinECHO = 17;
-Pwm pwm = Pwm();
 
 // Setup
 void setup()
@@ -102,14 +96,6 @@ void setup()
   Serial.println("IP address: ");
   Serial.println(WiFi.localIP());
   Serial.println("Setup!");
-
-  // Configure pin modes for actuators (output mode) and sensors (input mode). Pin numbers should be described by GPIO number (https://www.upesy.com/blogs/tutorials/esp32-pinout-reference-gpio-pins-ultimate-guide)
-  // For ESP32 WROOM 32D https://uelectronics.com/producto/esp32-38-pines-esp-wroom-32/
-  // You must find de pinout for your specific board version
-  pinMode(actuatorPin, OUTPUT);
-  pinMode(analogActuatorPin, OUTPUT);
-  pinMode(analogSensorPin, INPUT);
-  pinMode(digitalSensorPin, INPUT);
 
   // Init and get the time
   timeClient.begin();
@@ -426,7 +412,7 @@ void HandleMqtt()
 void loop()
 {
   /*GET_tests();
-  POST_tests();
+  POST_tests();*/
 
   // Update current time using NTP protocol
   timeClient.update();
@@ -434,35 +420,34 @@ void loop()
   // Print current time in serial monitor
   Serial.println(timeClient.getFormattedTime());
 
-  // Depending on the current second (even or odd), write in digital actuator pin HIGH or LOW value
-  if (timeClient.getSeconds() % 2 == 1)
-  {
-    digitalWrite(actuatorPin, HIGH);
-    Serial.println("ON");
-  }
-
   for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
     pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
     delay(15);
   }
 
   // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
-  pwm.writeServo(analogActuatorPin, 180, 140.0, 0.6);
+  pwm.writeServo(servoPin, 180, 140.0, 0.6);
 
-  // Reads analog sensor value and print it by serial monitor
-  int analogValue = analogRead(analogSensorPin);
-  Serial.println("Analog sensor value :" + String(analogValue));
-
-  // Reads digital sensor value and print ON or OFF by serial monitor depending on the sensor status (binary)
-  int digitalValue = digitalRead(digitalSensorPin);
-  if (digitalValue == HIGH)
-  {
-    Serial.println("Digital sensor value : ON");
-  }
-  else
-  {
-    Serial.println("Digital sensor value : OFF");
-  }
+  //Ultrasound test
+  int cm = ping(ultrasoundPinTRIG, ultrasoundPinECHO);
+  Serial.print("Distancia: ");
+  Serial.println(cm);
+  delay(1000);
 
   HandleMqtt();
+}
+
+int ping(int TriggerPin, int EchoPin) {
+  long duration, distanceCm;
+  
+  digitalWrite(TriggerPin, LOW);  //para generar un pulso limpio ponemos a LOW 4us
+  delayMicroseconds(4);
+  digitalWrite(TriggerPin, HIGH);  //generamos Trigger (disparo) de 10us
+  delayMicroseconds(10);
+  digitalWrite(TriggerPin, LOW);
+  
+  duration = pulseIn(EchoPin, HIGH);  //medimos el tiempo entre pulsos, en microsegundos
+  
+  distanceCm = duration * 10 / 292/ 2;   //convertimos a distancia, en cm
+  return distanceCm;
 }
