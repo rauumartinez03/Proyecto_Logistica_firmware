@@ -369,6 +369,8 @@ void POST_tests()
   http.begin(serverPath.c_str());
   test_response(http.POST(actuator_status_body));
 
+  delay(2000);
+
   String sensor_value_body = serializeSensorValueBody(18, millis(), random(2000, 4000) / 100);
   describe("Test POST with sensor value");
   serverPath = serverName + "api/sensorValues";
@@ -424,9 +426,9 @@ void loop()
 {
   //counter++;
 
-  GET_tests();
+  //GET_tests();
+  POST_tests();
   delay(10000);
-  //POST_tests();
 
   /*
   if(counter == 10 && state == 0){
