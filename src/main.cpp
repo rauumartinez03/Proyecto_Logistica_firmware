@@ -363,15 +363,15 @@ void GET_tests()
 
 void POST_tests()
 {
-  String actuator_states_body = serializeActuatorStatusBody(random(2000, 4000) / 100, true, 1, millis());
-  describe("Test POST with actuator state");
-  String serverPath = serverName + "api/actuator_states";
+  String actuator_status_body = serializeActuatorStatusBody(random(2000, 4000) / 100, true, 1, millis());
+  describe("Test POST with actuator status");
+  String serverPath = serverName + "api/actuatorStatus";
   http.begin(serverPath.c_str());
-  test_response(http.POST(actuator_states_body));
+  test_response(http.POST(actuator_status_body));
 
   String sensor_value_body = serializeSensorValueBody(18, millis(), random(2000, 4000) / 100);
   describe("Test POST with sensor value");
-  serverPath = serverName + "api/sensor_values";
+  serverPath = serverName + "api/sensorValues";
   http.begin(serverPath.c_str());
   test_response(http.POST(sensor_value_body));
 
