@@ -14,7 +14,7 @@ int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP (ipconfig [windows] or ifconfig [Linux o MacOS] gets IP assigned to your PC)
-String serverName = "http://192.168.1.154/";
+String serverName = "http://192.168.5.19/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
@@ -332,20 +332,28 @@ void GET_tests()
   // test_response(http.GET());
   deserializeDeviceBody(http.GET());
 
+  delay(2000);
+
   describe("Test GET sensors from deviceID");
-  serverPath = serverName + "api/devices/sensors" + String(DEVICE_ID);
+  serverPath = serverName + "api/devices/sensors/" + String(DEVICE_ID);
   http.begin(serverPath.c_str());
   deserializeSensorsFromDevice(http.GET());
 
+  delay(2000);
+
   describe("Test GET actuators from deviceID");
-  serverPath = serverName + "api/devices/actuators" + String(DEVICE_ID);
+  serverPath = serverName + "api/devices/actuators/" + String(DEVICE_ID);
   http.begin(serverPath.c_str());
   deserializeActuatorsFromDevice(http.GET());
+
+  delay(2000);
 
   describe("Test GET sensors from deviceID and Type");
   serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors/Temperature";
   http.begin(serverPath.c_str());
   deserializeSensorsFromDevice(http.GET());
+
+  delay(2000);
 
   describe("Test GET actuators from deviceID");
   serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/actuators/Relay";
