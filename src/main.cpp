@@ -15,7 +15,7 @@ int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP (ipconfig [windows] or ifconfig [Linux o MacOS] gets IP assigned to your PC)
-String serverName = "http://0.0.0.0/";
+String serverName = "http://192.168.1.154/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
@@ -425,44 +425,44 @@ void HandleMqtt()
 // Run the tests!
 void loop()
 {
-  /*GET_tests();
+  GET_tests();
   POST_tests();
 
-  // Update current time using NTP protocol
-  timeClient.update();
+  // // Update current time using NTP protocol
+  // timeClient.update();
 
-  // Print current time in serial monitor
-  Serial.println(timeClient.getFormattedTime());
+  // // Print current time in serial monitor
+  // Serial.println(timeClient.getFormattedTime());
 
-  // Depending on the current second (even or odd), write in digital actuator pin HIGH or LOW value
-  if (timeClient.getSeconds() % 2 == 1)
-  {
-    digitalWrite(actuatorPin, HIGH);
-    Serial.println("ON");
-  }
+  // // Depending on the current second (even or odd), write in digital actuator pin HIGH or LOW value
+  // if (timeClient.getSeconds() % 2 == 1)
+  // {
+  //   digitalWrite(actuatorPin, HIGH);
+  //   Serial.println("ON");
+  // }
 
-  for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
-    pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-    delay(15);
-  }
+  // for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
+  //   pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+  //   delay(15);
+  // }
 
-  // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
-  pwm.writeServo(analogActuatorPin, 180, 140.0, 0.6);
+  // // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
+  // pwm.writeServo(analogActuatorPin, 180, 140.0, 0.6);
 
-  // Reads analog sensor value and print it by serial monitor
-  int analogValue = analogRead(analogSensorPin);
-  Serial.println("Analog sensor value :" + String(analogValue));
+  // // Reads analog sensor value and print it by serial monitor
+  // int analogValue = analogRead(analogSensorPin);
+  // Serial.println("Analog sensor value :" + String(analogValue));
 
-  // Reads digital sensor value and print ON or OFF by serial monitor depending on the sensor status (binary)
-  int digitalValue = digitalRead(digitalSensorPin);
-  if (digitalValue == HIGH)
-  {
-    Serial.println("Digital sensor value : ON");
-  }
-  else
-  {
-    Serial.println("Digital sensor value : OFF");
-  }
+  // // Reads digital sensor value and print ON or OFF by serial monitor depending on the sensor status (binary)
+  // int digitalValue = digitalRead(digitalSensorPin);
+  // if (digitalValue == HIGH)
+  // {
+  //   Serial.println("Digital sensor value : ON");
+  // }
+  // else
+  // {
+  //   Serial.println("Digital sensor value : OFF");
+  // }
 
   HandleMqtt();
 }
