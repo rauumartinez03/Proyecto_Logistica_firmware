@@ -14,7 +14,7 @@ int test_delay = 1000; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP (ipconfig [windows] or ifconfig [Linux o MacOS] gets IP assigned to your PC)
-String serverName = "http://0.0.0.0/";
+String serverName = "http://192.168.1.154/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
@@ -432,28 +432,30 @@ void loop()
       pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
     }
 
-    for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
-      pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-    }
+  // for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
+  //   pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+  //   delay(15);
+  // }
 
     // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
     //pwm.writeServo(servoPin, 180, 140.0, 0.6);
+  // // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
+  // pwm.writeServo(analogActuatorPin, 180, 140.0, 0.6);
 
-    //Reset counter, update state
-    counter = 0;
-    state = 1;
-  }
-  
-  if (counter == 10 && state == 1){
-    //Ultrasound test
-    int cm = ping(ultrasoundPinTRIG, ultrasoundPinECHO);
-    Serial.print("Distancia: ");
-    Serial.println(cm);
+  // // Reads analog sensor value and print it by serial monitor
+  // int analogValue = analogRead(analogSensorPin);
+  // Serial.println("Analog sensor value :" + String(analogValue));
 
-    //Reset counter, update state
-    counter = 0;
-    state = 0;
-  }
+  // // Reads digital sensor value and print ON or OFF by serial monitor depending on the sensor status (binary)
+  // int digitalValue = digitalRead(digitalSensorPin);
+  // if (digitalValue == HIGH)
+  // {
+  //   Serial.println("Digital sensor value : ON");
+  // }
+  // else
+  // {
+  //   Serial.println("Digital sensor value : OFF");
+  // }
 
   delay(10); //TEMPORIZACIÓN
   */
