@@ -30,7 +30,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Server IP, where de MQTT broker is deployed
-const char *MQTT_BROKER_ADRESS = "192.168.1.154";
+const char *MQTT_BROKER_ADRESS = "192.168.5.19";
 const uint16_t MQTT_PORT = 1883;
 
 // Name for this MQTT client
@@ -38,8 +38,8 @@ const char *MQTT_CLIENT_NAME = "ArduinoClient_1";
 
 // Pinout settings
 const int servoPin = 26;
-const int ultrasoundPinTRIG = 16;
-const int ultrasoundPinECHO = 17;
+const int ultrasoundPinTRIG = 17;
+const int ultrasoundPinECHO = 16;
 
 // Property initialization for servo movement using PWM signal
 Pwm pwm = Pwm();
@@ -333,12 +333,12 @@ void GET_tests()
   deserializeDeviceBody(http.GET());
 
   describe("Test GET sensors from deviceID");
-  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/sensors";
+  serverPath = serverName + "api/devices/sensors" + String(DEVICE_ID);
   http.begin(serverPath.c_str());
   deserializeSensorsFromDevice(http.GET());
 
   describe("Test GET actuators from deviceID");
-  serverPath = serverName + "api/devices/" + String(DEVICE_ID) + "/actuators";
+  serverPath = serverName + "api/devices/actuators" + String(DEVICE_ID);
   http.begin(serverPath.c_str());
   deserializeActuatorsFromDevice(http.GET());
 
@@ -408,32 +408,55 @@ void HandleMqtt()
   client.loop();
 }
 
+//Inicializar contador paralelizacion
+int counter = 0, state = 0;
+
 // Run the tests!
 void loop()
 {
-  /*GET_tests();
-  POST_tests();*/
+  //counter++;
 
-  // Update current time using NTP protocol
-  timeClient.update();
+  GET_tests();
+  delay(10000);
+  //POST_tests();
 
-  // Print current time in serial monitor
-  Serial.println(timeClient.getFormattedTime());
+  /*
+  if(counter == 10 && state == 0){
+    // Update current time using NTP protocol
+    timeClient.update();
 
-  for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
-    pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-    delay(15);
+    // Print current time in serial monitor
+    Serial.println(timeClient.getFormattedTime());
+
+    for (int pos = 0; pos <= 180; pos++) {  // go from 0-180 degrees
+      pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+    }
+
+    for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
+      pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+    }
+
+    // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
+    //pwm.writeServo(servoPin, 180, 140.0, 0.6);
+
+    //Reset counter, update state
+    counter = 0;
+    state = 1;
+  }
+  
+  if (counter == 10 && state == 1){
+    //Ultrasound test
+    int cm = ping(ultrasoundPinTRIG, ultrasoundPinECHO);
+    Serial.print("Distancia: ");
+    Serial.println(cm);
+
+    //Reset counter, update state
+    counter = 0;
+    state = 0;
   }
 
-  // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
-  pwm.writeServo(servoPin, 180, 140.0, 0.6);
-
-  //Ultrasound test
-  int cm = ping(ultrasoundPinTRIG, ultrasoundPinECHO);
-  Serial.print("Distancia: ");
-  Serial.println(cm);
-  delay(1000);
-
+  delay(10); //TEMPORIZACIÓN
+  */
   HandleMqtt();
 }
 
