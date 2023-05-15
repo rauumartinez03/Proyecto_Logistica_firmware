@@ -107,7 +107,7 @@ void setup()
 
 String response;
 
-String serializeSensorValueBody(int idSensor, long timestamp, float value)
+String serializeSensorValueBody(int idSensor, long timestamp, float value, int boxNumber)
 {
   // StaticJsonObject allocates memory on the stack, it can be
   // replaced by DynamicJsonDocument which allocates in the heap.
@@ -120,6 +120,7 @@ String serializeSensorValueBody(int idSensor, long timestamp, float value)
   doc["timestamp"] = timestamp;
   doc["value"] = value;
   doc["removed"] = false;
+  doc["boxNumber"] = boxNumber;
 
   // Generate the minified JSON and send it to the Serial port.
   //
@@ -371,7 +372,7 @@ void POST_tests()
 
   delay(2000);
 
-  String sensor_value_body = serializeSensorValueBody(18, millis(), random(2000, 4000) / 100);
+  String sensor_value_body = serializeSensorValueBody(18, millis(), random(2000, 4000) / 100, 0);
   describe("Test POST with sensor value");
   serverPath = serverName + "api/sensorValues";
   http.begin(serverPath.c_str());
@@ -418,58 +419,36 @@ void HandleMqtt()
   client.loop();
 }
 
-//Inicializar contador paralelizacion
-int counter = 0, state = 0;
-
 // Run the tests!
 void loop()
 {
-  //counter++;
-
-  //GET_tests();
-  POST_tests();
+  HandleMqtt();
+  GET_tests();
+  //POST_tests();
   delay(10000);
 
   /*
-  if(counter == 10 && state == 0){
-    // Update current time using NTP protocol
-    timeClient.update();
+  // Update current time using NTP protocol
+  timeClient.update();
 
-    // Print current time in serial monitor
-    Serial.println(timeClient.getFormattedTime());
+  // Print current time in serial monitor
+  Serial.println(timeClient.getFormattedTime());
 
-    for (int pos = 0; pos <= 180; pos++) {  // go from 0-180 degrees
-      pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-    }
+  if(timeClient.getSeconds() % 2 == 1) ...
 
-  // for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
-  //   pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-  //   delay(15);
-  // }
+  for (int pos = 0; pos <= 180; pos++) {  // go from 0-180 degrees
+    pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+  }
+  
+   for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
+     pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
+     delay(15);
+  }
 
-    // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
-    //pwm.writeServo(servoPin, 180, 140.0, 0.6);
-  // // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
-  // pwm.writeServo(analogActuatorPin, 180, 140.0, 0.6);
-
-  // // Reads analog sensor value and print it by serial monitor
-  // int analogValue = analogRead(analogSensorPin);
-  // Serial.println("Analog sensor value :" + String(analogValue));
-
-  // // Reads digital sensor value and print ON or OFF by serial monitor depending on the sensor status (binary)
-  // int digitalValue = digitalRead(digitalSensorPin);
-  // if (digitalValue == HIGH)
-  // {
-  //   Serial.println("Digital sensor value : ON");
-  // }
-  // else
-  // {
-  //   Serial.println("Digital sensor value : OFF");
-  // }
-
-  delay(10); //TEMPORIZACIÓN
+  // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
+  //pwm.writeServo(servoPin, 180, 140.0, 0.6);
   */
-  HandleMqtt();
+  
 }
 
 int ping(int TriggerPin, int EchoPin) {
