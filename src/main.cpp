@@ -6,6 +6,9 @@
 #include <PubSubClient.h>
 
 int ping(int TriggerPin, int EchoPin);
+void postValorSensor();
+
+int retraso = timeClient.getSeconds();
 
 // Replace 0 by ID of this current device
 const int DEVICE_ID = 124;
@@ -38,8 +41,10 @@ const char *MQTT_CLIENT_NAME = "ArduinoClient_1";
 
 // Pinout settings
 const int servoPin = 26;
-const int ultrasoundPinTRIG = 17;
-const int ultrasoundPinECHO = 16;
+const int ultrasound1PinTRIG = 17;
+const int ultrasound1PinECHO = 16;
+const int ultrasound2PinTRIG = 15;
+const int ultrasound2PinECHO = 14;
 
 // Property initialization for servo movement using PWM signal
 Pwm pwm = Pwm();
@@ -101,8 +106,10 @@ void setup()
   timeClient.begin();
 
   //Init pins
-  pinMode(ultrasoundPinTRIG, OUTPUT);
-  pinMode(ultrasoundPinECHO, INPUT);
+  pinMode(ultrasound1PinTRIG, OUTPUT);
+  pinMode(ultrasound1PinECHO, INPUT);
+  pinMode(ultrasound2PinTRIG, OUTPUT);
+  pinMode(ultrasound2PinECHO, INPUT);
 }
 
 String response;
@@ -416,6 +423,7 @@ void HandleMqtt()
   {
     ConnectMqtt();
   }
+  
   client.loop();
 }
 
@@ -423,9 +431,29 @@ void HandleMqtt()
 void loop()
 {
   HandleMqtt();
-  GET_tests();
+  //GET_tests();
   //POST_tests();
-  delay(10000);
+  //delay(10000);
+
+  int anchura = ping(ultrasound1PinTRIG, ultrasound1PinECHO);
+  int altura = ping(ultrasound2PinTRIG, ultrasound2PinECHO);
+  
+  if (!(98 < anchura < 102 || 98 < anchura < 102)){
+
+    postValorSensor();
+    postValorSensor();
+
+  }
+
+  timeClient.update();
+
+  if ((retraso + 5) % 60 == timeClient.getSeconds()) {
+
+    retraso = timeClient.getSeconds();
+
+    pwm.writeServo(servoPin, 30);        // set the servo position (degrees)
+    postValorActuador();
+  }
 
   /*
   // Update current time using NTP protocol
@@ -449,6 +477,18 @@ void loop()
   //pwm.writeServo(servoPin, 180, 140.0, 0.6);
   */
   
+}
+
+void postValorSensor(){
+
+  
+
+}
+
+void postValorActuador(){
+
+  
+
 }
 
 int ping(int TriggerPin, int EchoPin) {
