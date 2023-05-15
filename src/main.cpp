@@ -5,10 +5,16 @@
 #include <pwmWrite.h>
 #include <PubSubClient.h>
 
+//Funciones
 int ping(int TriggerPin, int EchoPin);
-void postValorSensor();
+void postValorSensor(int tipo, int idSensor, float value, int boxNumber);
+void postValorActuador(float status, int idActuator);
 
-int retraso = timeClient.getSeconds();
+//Variables 
+int retraso; //Iniciada en setup
+int cont = 10000;
+int boxNumber = 0;
+bool ready = false;
 
 // Replace 0 by ID of this current device
 const int DEVICE_ID = 124;
@@ -104,6 +110,7 @@ void setup()
 
   // Init and get the time
   timeClient.begin();
+  retraso = timeClient.getSeconds();
 
   //Init pins
   pinMode(ultrasound1PinTRIG, OUTPUT);
@@ -431,64 +438,48 @@ void HandleMqtt()
 void loop()
 {
   HandleMqtt();
-  //GET_tests();
-  //POST_tests();
-  //delay(10000);
+  timeClient.update();
 
   int anchura = ping(ultrasound1PinTRIG, ultrasound1PinECHO);
   int altura = ping(ultrasound2PinTRIG, ultrasound2PinECHO);
   
-  if (!(98 < anchura < 102 || 98 < anchura < 102)){
-
-    postValorSensor();
-    postValorSensor();
-
+  cont--;
+  if (!(40 < anchura < 60 || 40 < altura < 60) && cont == 0){
+    boxNumber++; //Esperando que haya pasado de verdad una nueva caja y no sea la misma
+    postValorSensor(1, 2, anchura, boxNumber);
+    postValorSensor(2, 1, altura, boxNumber);
+    cont = 10000000; //Esperando que sea mayor que 2 segundos para no hacer post 2 veces
+    ready = true;
   }
 
-  timeClient.update();
-
-  if ((retraso + 5) % 60 == timeClient.getSeconds()) {
-
+  if ((retraso + 2) % 60 == timeClient.getSeconds() && ready) { //Esto va a funcionar bien??
     retraso = timeClient.getSeconds();
 
+    //Recibir MQTT??
     pwm.writeServo(servoPin, 30);        // set the servo position (degrees)
-    postValorActuador();
+    postValorActuador(30, 1);
+    ready = false;
   }
-
-  /*
-  // Update current time using NTP protocol
-  timeClient.update();
-
-  // Print current time in serial monitor
-  Serial.println(timeClient.getFormattedTime());
-
-  if(timeClient.getSeconds() % 2 == 1) ...
-
-  for (int pos = 0; pos <= 180; pos++) {  // go from 0-180 degrees
-    pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-  }
-  
-   for (int pos = 180; pos >= 0; pos--) {  // go from 180-0 degrees
-     pwm.writeServo(servoPin, pos);        // set the servo position (degrees)
-     delay(15);
-  }
-
-  // Servo moves from 0 to 180 deg at 140 deg/s with sigmoid motion.
-  //pwm.writeServo(servoPin, 180, 140.0, 0.6);
-  */
   
 }
 
-void postValorSensor(){
-
-  
-
+void postValorSensor(int tipo, int idSensor, float value, int boxNumber){
+  String t = tipo == 1 ? "anchura" : "altura";
+  String m = "Enviado POST sensorValue de " + t;
+  char* mensaje = strcpy(new char[m.length() + 1], m.c_str());
+  String sensor_value_body = serializeSensorValueBody(idSensor, millis(), value, boxNumber);
+  describe(mensaje);
+  String serverPath = serverName + "api/sensorValues";
+  http.begin(serverPath.c_str());
+  test_response(http.POST(sensor_value_body));
 }
 
-void postValorActuador(){
-
-  
-
+void postValorActuador(float status, int idActuator){
+  String actuator_status_body = serializeActuatorStatusBody(status, true, idActuator, millis());
+  describe("Enviado POST actuatorStatus");
+  String serverPath = serverName + "api/actuatorStatus";
+  http.begin(serverPath.c_str());
+  test_response(http.POST(actuator_status_body));
 }
 
 int ping(int TriggerPin, int EchoPin) {
