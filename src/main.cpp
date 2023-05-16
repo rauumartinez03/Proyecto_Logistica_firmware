@@ -11,7 +11,7 @@ void postValorSensor(int tipo, int idSensor, float value, int boxNumber);
 void postValorActuador(float status, int idActuator);
 
 //Variables 
-int retraso; //Iniciada en setup
+int retraso = 0;
 int cont = 10000;
 int boxNumber = 0;
 bool ready = false;
@@ -110,7 +110,6 @@ void setup()
 
   // Init and get the time
   timeClient.begin();
-  retraso = timeClient.getSeconds();
 
   //Init pins
   pinMode(ultrasound1PinTRIG, OUTPUT);
@@ -450,11 +449,12 @@ void loop()
     postValorSensor(2, 1, altura, boxNumber);
     cont = 10000000; //Esperando que sea mayor que 2 segundos para no hacer post 2 veces
     ready = true;
+    retraso = timeClient.getSeconds();
+  } else if (cont == 0){
+    cont = 10000000; //Reset en caso de que no haya objeto
   }
 
   if ((retraso + 2) % 60 == timeClient.getSeconds() && ready) { //Esto va a funcionar bien??
-    retraso = timeClient.getSeconds();
-
     //Recibir MQTT??
     pwm.writeServo(servoPin, 30);        // set the servo position (degrees)
     postValorActuador(30, 1);
