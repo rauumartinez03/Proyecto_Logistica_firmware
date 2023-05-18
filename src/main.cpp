@@ -327,7 +327,7 @@ void test_response(int httpResponseCode)
     //Serial.print("HTTP Response code: ");
     //Serial.println(httpResponseCode);
     String payload = http.getString();
-    Serial.print(payload);
+    Serial.println(payload);
   }
   else
   {
@@ -339,7 +339,7 @@ void test_response(int httpResponseCode)
 void describe(char *description)
 {
   if (describe_tests)
-    Serial.println(description);
+    Serial.print(description);
 }
 
 void GET_tests()
