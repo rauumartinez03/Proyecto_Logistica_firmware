@@ -12,14 +12,15 @@ void postValorActuador(float status, int idActuator);
 
 //Variables 
 int retraso = 0;
-int cont = 10000;
+int cont = 150;
 int boxNumber = 0;
 bool ready = false;
+String content2 = "";
 
 // Replace 0 by ID of this current device
-const int DEVICE_ID = 124;
+const int DEVICE_ID = 1;
 
-int test_delay = 1000; // so we don't spam the API
+int test_delay = 500; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP (ipconfig [windows] or ifconfig [Linux o MacOS] gets IP assigned to your PC)
@@ -43,14 +44,14 @@ const char *MQTT_BROKER_ADRESS = "192.168.5.19";
 const uint16_t MQTT_PORT = 1883;
 
 // Name for this MQTT client
-const char *MQTT_CLIENT_NAME = "ArduinoClient_1";
+const char *MQTT_CLIENT_NAME = "mqttChannel1";
 
 // Pinout settings
-const int servoPin = 26;
-const int ultrasound1PinTRIG = 17;
-const int ultrasound1PinECHO = 16;
-const int ultrasound2PinTRIG = 15;
-const int ultrasound2PinECHO = 14;
+const int servoPin = 25;
+const int ultrasound1PinTRIG = 23;
+const int ultrasound1PinECHO = 22;
+const int ultrasound2PinTRIG = 17;
+const int ultrasound2PinECHO = 16;
 
 // Property initialization for servo movement using PWM signal
 Pwm pwm = Pwm();
@@ -70,6 +71,9 @@ void OnMqttReceived(char *topic, byte *payload, unsigned int length)
   }
   Serial.print(content);
   Serial.println();
+
+  content2 = content;
+   
 }
 
 // inicia la comunicacion MQTT
@@ -317,13 +321,13 @@ void deserializeActuatorsFromDevice(int httpResponseCode)
 
 void test_response(int httpResponseCode)
 {
-  delay(test_delay);
+  //delay(test_delay);
   if (httpResponseCode > 0)
   {
-    Serial.print("HTTP Response code: ");
-    Serial.println(httpResponseCode);
+    //Serial.print("HTTP Response code: ");
+    //Serial.println(httpResponseCode);
     String payload = http.getString();
-    Serial.println(payload);
+    Serial.print(payload);
   }
   else
   {
@@ -406,8 +410,8 @@ void ConnectMqtt()
   Serial.print("Starting MQTT connection...");
   if (client.connect(MQTT_CLIENT_NAME))
   {
-    client.subscribe("hello/world");
-    client.publish("hello/world", "connected");
+    client.subscribe(MQTT_CLIENT_NAME);
+    client.publish(MQTT_CLIENT_NAME, "connected");
   }
   else
   {
@@ -437,27 +441,32 @@ void HandleMqtt()
 void loop()
 {
   HandleMqtt();
-  timeClient.update();
 
   int anchura = ping(ultrasound1PinTRIG, ultrasound1PinECHO);
   int altura = ping(ultrasound2PinTRIG, ultrasound2PinECHO);
   
   cont--;
-  if (!(40 < anchura < 60 || 40 < altura < 60) && cont == 0){
+  if ((anchura < 60 || altura < 60) && cont == 0){
+    Serial.println("Caja leida\n");
     boxNumber++; //Esperando que haya pasado de verdad una nueva caja y no sea la misma
     postValorSensor(1, 2, anchura, boxNumber);
     postValorSensor(2, 1, altura, boxNumber);
-    cont = 10000000; //Esperando que sea mayor que 2 segundos para no hacer post 2 veces
+    cont = 150; //~ 9s
+    retraso = 50; //~ 3s
     ready = true;
-    retraso = timeClient.getSeconds();
   } else if (cont == 0){
-    cont = 10000000; //Reset en caso de que no haya objeto
+    Serial.println("Esperando caja...");
+    cont = 150; //Reset en caso de que no haya objeto
   }
 
-  if ((retraso + 2) % 60 == timeClient.getSeconds() && ready) { //Esto va a funcionar bien??
-    //Recibir MQTT??
-    pwm.writeServo(servoPin, 30);        // set the servo position (degrees)
-    postValorActuador(30, 1);
+  retraso--;
+
+  if (retraso == 0 && ready) { //Pasados 3 segundos, el actuador ya puede funcionar
+    //Recibir MQTT
+    Serial.println("Clasificando caja:\n");
+    int angulo = content2.toInt();
+    pwm.writeServo(servoPin, angulo);        // set the servo position (degrees)
+    postValorActuador(angulo, 1);
     ready = false;
   }
   
@@ -465,9 +474,9 @@ void loop()
 
 void postValorSensor(int tipo, int idSensor, float value, int boxNumber){
   String t = tipo == 1 ? "anchura" : "altura";
-  String m = "Enviado POST sensorValue de " + t;
+  String m = "Enviado POST sensorValue de " + t + " - ";
   char* mensaje = strcpy(new char[m.length() + 1], m.c_str());
-  String sensor_value_body = serializeSensorValueBody(idSensor, millis(), value, boxNumber);
+  String sensor_value_body = serializeSensorValueBody(idSensor, timeClient.getEpochTime(), value, boxNumber);
   describe(mensaje);
   String serverPath = serverName + "api/sensorValues";
   http.begin(serverPath.c_str());
@@ -475,8 +484,8 @@ void postValorSensor(int tipo, int idSensor, float value, int boxNumber){
 }
 
 void postValorActuador(float status, int idActuator){
-  String actuator_status_body = serializeActuatorStatusBody(status, true, idActuator, millis());
-  describe("Enviado POST actuatorStatus");
+  String actuator_status_body = serializeActuatorStatusBody(status, true, idActuator, timeClient.getEpochTime());
+  describe("Enviado POST actuatorStatus - ");
   String serverPath = serverName + "api/actuatorStatus";
   http.begin(serverPath.c_str());
   test_response(http.POST(actuator_status_body));
