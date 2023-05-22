@@ -24,7 +24,7 @@ int test_delay = 500; // so we don't spam the API
 boolean describe_tests = true;
 
 // Replace 0.0.0.0 by your server local IP (ipconfig [windows] or ifconfig [Linux o MacOS] gets IP assigned to your PC)
-String serverName = "http://192.168.5.19/";
+String serverName = "http://192.168.199.19/";
 HTTPClient http;
 
 // Replace WifiName and WifiPassword by your WiFi credentials
@@ -40,7 +40,7 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // Server IP, where de MQTT broker is deployed
-const char *MQTT_BROKER_ADRESS = "192.168.5.19";
+const char *MQTT_BROKER_ADRESS = "192.168.199.19";
 const uint16_t MQTT_PORT = 1883;
 
 // Name for this MQTT client
