@@ -449,8 +449,8 @@ void loop()
   if ((anchura < 60 || altura < 60) && cont == 0){
     Serial.println("Caja leida\n");
     boxNumber++; //Esperando que haya pasado de verdad una nueva caja y no sea la misma
-    postValorSensor(1, 2, 70 - anchura, boxNumber);
     postValorSensor(2, 1, 70 - altura, boxNumber);
+    postValorSensor(1, 2, 70 - anchura, boxNumber);
     cont = 150; //~ 9s
     retraso = 50; //~ 3s
     ready = true;
